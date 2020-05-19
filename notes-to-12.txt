@@ -1,0 +1,2 @@
+# convert all notes to ch12
+NX = XB

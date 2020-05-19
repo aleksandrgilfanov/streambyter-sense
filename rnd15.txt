@@ -1,0 +1,16 @@
+# in: CC 2A and CC 6A (ch1)
+# out: random bank and program change (ch15)
+
+IF M0 == B0 2A 7F
+  MAT L0 = 2 + R$5
+  SND BE 00 L0
+
+  SND CE R$69
+END
+
+IF M0 == B0 6A 7F
+  MAT L0 = 2 + R$5
+  SND BE 00 L0
+
+  SND CE R$69
+END

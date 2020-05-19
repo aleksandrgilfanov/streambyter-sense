@@ -1,0 +1,6 @@
+# in: CC 68 (ch1)
+# out: random program change (ch1)
+
+IF M0 == B0 68 7F
+  SND C0 R$69
+END

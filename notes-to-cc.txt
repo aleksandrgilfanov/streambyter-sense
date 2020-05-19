@@ -1,0 +1,2 @@
+# convert notes to cc (ch1)
+90 = B0

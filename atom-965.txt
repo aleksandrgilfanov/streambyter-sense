@@ -1,0 +1,20 @@
+# use different banks @ atom on different channels
+# notes adopted for korg gadget drums
+
+# convert to ch9
+XX 28 = X8 24
+XX 29 = X8 25
+XX 2A = X8 26
+XX 2B = X8 27
+
+# convert to ch6
+XX 2C = X5 24
+XX 2D = X5 25
+XX 2E = X5 26
+XX 2F = X5 27
+
+# convert to ch5
+XX 30 = X4 24
+XX 31 = X4 25
+XX 32 = X4 26
+XX 33 = X4 27

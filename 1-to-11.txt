@@ -1,0 +1,2 @@
+# convert ch1 to ch11
+X0 = XA

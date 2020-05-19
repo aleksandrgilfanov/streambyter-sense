@@ -1,0 +1,8 @@
+# if CC27 send CC0 and CC127
+IF M0 == B0 1B
+  SND B0 1B 00
+  SND B0 1B 7F
+END
+
+# block original CC27
+B0 1B = B0 1B +B

@@ -1,0 +1,8 @@
+# if got CC 0x62 (capture midi on LaunchPadX)
+IF M0 == B0 62 00
+  # select bank 9 (my favorites @ SynthMasterOne)
+  SND BA 00 09
+
+  # send program change random max 0x2A
+  SND CA $R2A
+END

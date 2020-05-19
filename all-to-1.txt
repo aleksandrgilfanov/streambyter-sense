@@ -1,0 +1,2 @@
+# everything to ch1
+XX = X0

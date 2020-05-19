@@ -1,0 +1,2 @@
+# convert all notes to ch11
+NX = XA

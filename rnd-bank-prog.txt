@@ -1,0 +1,11 @@
+# in: CC 68 (ch1)
+# out random bank and program change
+# used with kauldron?
+
+IF M0 == B0 68 7F
+  MAT L0 = 2 + R$5
+
+  SND B0 00 L0
+
+  SND C0 R$69
+END
