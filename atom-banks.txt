@@ -1,0 +1,156 @@
+# Translate ATOM banks to different channels, and
+# use the same notes in each bank, like in bank 1 (0x24 etc)
+
+# each bank is 16 notes (or 0x10)
+
+# bank 1 starts from 0x24
+# ...
+# bank 6 last four notes is 0x00 0x01 0x02 0x03, after 0x7F overflow
+# bank 7 starts from 0x04 and goes on
+# bank 8 starts frin 0x14
+
+# 24 to channel 1
+XX 24 = X0 24
+XX 25 = X0 25
+XX 26 = X0 26
+XX 27 = X0 27
+XX 28 = X0 28
+XX 29 = X0 29
+XX 2A = X0 2A
+XX 2B = X0 2B
+XX 2C = X0 2C
+XX 2D = X0 2D
+XX 2E = X0 2E
+XX 2F = X0 2F
+XX 30 = X0 30
+XX 31 = X0 31
+XX 32 = X0 32
+XX 33 = X0 33
+
+# 34 to channel 2
+XX 34 = X1 24
+XX 35 = X1 25
+XX 36 = X1 26
+XX 37 = X1 27
+XX 38 = X1 28
+XX 39 = X1 29
+XX 3A = X1 2A
+XX 3B = X1 2B
+XX 3C = X1 2C
+XX 3D = X1 2D
+XX 3E = X1 2E
+XX 3F = X1 2F
+XX 40 = X1 30
+XX 41 = X1 31
+XX 42 = X1 32
+XX 43 = X1 33
+
+# 44 to channel 3
+XX 44 = X2 24
+XX 45 = X2 25
+XX 46 = X2 26
+XX 47 = X2 27
+XX 48 = X2 28
+XX 49 = X2 29
+XX 4A = X2 2A
+XX 4B = X2 2B
+XX 4C = X2 2C
+XX 4D = X2 2D
+XX 4E = X2 2E
+XX 4F = X2 2F
+XX 50 = X2 30
+XX 51 = X2 31
+XX 52 = X2 32
+XX 53 = X2 33
+
+# 54 to channel 4
+XX 54 = X3 24
+XX 55 = X3 25
+XX 56 = X3 26
+XX 57 = X3 27
+XX 58 = X3 28
+XX 59 = X3 29
+XX 5A = X3 2A
+XX 5B = X3 2B
+XX 5C = X3 2C
+XX 5D = X3 2D
+XX 5E = X3 2E
+XX 5F = X3 2F
+XX 60 = X3 30
+XX 61 = X3 31
+XX 62 = X3 32
+XX 63 = X3 33
+
+# 64 to channel 5
+XX 64 = X4 24
+XX 65 = X4 25
+XX 66 = X4 26
+XX 67 = X4 27
+XX 68 = X4 28
+XX 69 = X4 29
+XX 6A = X4 2A
+XX 6B = X4 2B
+XX 6C = X4 2C
+XX 6D = X4 2D
+XX 6E = X4 2E
+XX 6F = X4 2F
+XX 70 = X4 30
+XX 71 = X4 31
+XX 72 = X4 32
+XX 73 = X4 33
+
+# 74 to channel 6
+XX 74 = X5 24
+XX 75 = X5 25
+XX 76 = X5 26
+XX 77 = X5 27
+XX 78 = X5 28
+XX 79 = X5 29
+XX 7A = X5 2A
+XX 7B = X5 2B
+XX 7C = X5 2C
+XX 7D = X5 2D
+XX 7E = X5 2E
+XX 7F = X5 2F
+XX 00 = X5 30
+XX 01 = X5 31
+XX 02 = X5 32
+XX 03 = X5 33
+
+# 4 to channel 7
+XX 04 = X6 24
+XX 05 = X6 25
+XX 06 = X6 26
+XX 07 = X6 27
+XX 08 = X6 28
+XX 09 = X6 29
+XX 0A = X6 2A
+XX 0B = X6 2B
+XX 0C = X6 2C
+XX 0D = X6 2D
+XX 0E = X6 2E
+XX 0F = X6 2F
+XX 10 = X6 30
+XX 11 = X6 31
+XX 12 = X6 32
+XX 13 = X6 33
+
+# 14 to channel 8
+XX 14 = X7 24
+XX 15 = X7 25
+XX 16 = X7 26
+XX 17 = X7 27
+XX 18 = X7 28
+XX 19 = X7 29
+XX 1A = X7 2A
+XX 1B = X7 2B
+XX 1C = X7 2C
+XX 1D = X7 2D
+XX 1E = X7 2E
+XX 1F = X7 2F
+XX 20 = X7 30
+XX 21 = X7 31
+XX 22 = X7 32
+XX 23 = X7 33
+
+
