@@ -1,0 +1,4 @@
+# simple 400ms slapback
+# by audeonic
+
+NX = XX +D400 +C

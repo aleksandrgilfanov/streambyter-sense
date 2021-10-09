@@ -1,0 +1,87 @@
+
+IF LOAD
+  set name Blue_Velvet
+  # K0,1: timeouts in 10ms units
+  # (adjust to suit)
+  ASS K0 = 05 05
+
+  # convert timeouts to ms
+  MAT K0 = 64 * K0
+  MAT K1 = 64 * K1
+
+  # init note counter array
+  ASS I80 = 0
+  IF I80 < 80 +L
+    ASS II80 = 0
+    MAT I80 = I80 + 1
+  END
+END
+
+# force note offs
+9X XX 00 = 8X
+
+# detect note on, ch1
+IF M0 == 90
+  SET LB0 IM1 +D
+  IF IM1 == 0 # no timer yet, inject timer 1
+    SND F0 7D M1 00 F7 +DK0 +I
+  END
+  # increment note counter
+  MAT IM1 = IM1 + 1
+END
+
+# detect note off, ch1
+IF M0 == 80
+  IF IM1 > 0
+    # increment note counter
+    MAT IM1 = IM1 + 1
+  END
+END
+
+# detect timeout, ch1
+IF M0 == F0 7D
+  # issue/reset flag
+  ASS I80 = 0
+
+  # timer 1
+  IF M3 == 00
+    # hold or single tap - process now
+    IF IM2 <= 2
+      ASS I80 = 1
+    END
+
+    # other actions, process after second timeout
+    IF IM2 > 2
+      # inject timer 2
+      SND F0 7D M2 01 F7 +DK1 +I
+    END
+  END
+
+  # timer 2
+  IF M3 == 01
+    ASS I80 = 1
+  END
+
+  # issue/reset
+  IF I80 == 1
+    SET LB0 SFIN
+    SET LB1 M2 +N
+
+    # issue correct note on + off
+    MAT M0 = 90 + IM2
+    SND M0 M2 7F
+    MAT M0 = M0 - 10
+    SND M0 M2 00 +D200
+
+    # show channel+note in labels
+    MAT L0 = M0 - 7F
+    SET LB0 L0 +D
+    SET LB1 M2 +N
+
+    # reset note off count
+    ASS IM2 = 0
+  END
+END
+
+# block all incoming events
+XX = XX +B

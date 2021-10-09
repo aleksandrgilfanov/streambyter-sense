@@ -1,0 +1,66 @@
+# Mitch Slayton - Note Controlled Transposer
+# StreamByter 1.3+
+IF LOAD
+  # setup sliders
+  SET Q0 SEQ_CHAN $1 $16
+  SET Q1 CTL_CHAN $1 $16
+  ASS Q0 = 1 2
+  SND F0 7D 01 00 F7 +I
+  SND F0 7D 01 01 F7 +I
+
+  # internal
+  ASS L84 = 0 # current transpose
+  SET LB0 L84 +D
+END
+
+# handle sliders
+IF M0 == F0 7D 01
+  IF M3 == 00
+    MAT L80 = 8F + Q0 # seq note on
+    MAT L81 = 7F + Q0 # seq note off
+  END
+  IF M3 == 01
+    MAT L82 = 8F + Q1 # ctl note on
+    MAT L83 = 7F + Q1 # ctl note off
+  END
+END
+
+# force note offs
+9X XX 00 = 8X
+
+# incoming seq note on
+IF M0 == L80
+  # transpose the note
+  MAT I0 = M1 + L84
+
+  # handle oob transposes
+  IF I0 > E000 +L
+    MAT I0 = I0 + 0C
+  END
+  IF I0 > 7F +L
+    MAT I0 = I0 - 0C
+  END
+
+  # remember the transpose
+  ASS LM1 = I0
+
+  # convert the note
+  ASS M1 = I0
+END
+
+# incoming seq note off
+IF M0 == L81
+  # turn correct note off
+  ASS M1 = LM1
+END
+
+# incoming ctl note on+off
+IF M0 == L82
+  # calculate new transpose
+  MAT L84 = M1 - 3C
+  SET LB0 L84 +D
+  XX = XX +B
+END
+IF M0 == L83
+  XX = XX +B
+END

@@ -1,0 +1,17 @@
+# Blocking Medley
+# by audeonic
+# a collection of event blocking examples
+
+XX = XX +B # block everything
+X9 = XX +B # block channel 10
+X8-F = XX +B # block channels 9 to 16
+F0 = XX +B # block sysex dumps
+FE = XX +B # block active sense
+F8-C = XX +B # block clock
+NX 00-3B = XX +B # block notes below middle C
+NX XX 70-7F = XX +B # block loud notes
+AX = XX +B # block poly key pressure
+DX = XX +B # block channel pressure
+EX = XX +B # block pitchbend
+BX = XX +B # block all controllers
+BX 40 = XX +B # block sustain pedal

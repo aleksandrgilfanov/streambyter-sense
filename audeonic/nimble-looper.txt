@@ -1,0 +1,655 @@
+# Nimble Looper by audeonic
+# Quick Guide - How to use:
+#
+# 1. Use the host transport buttons or the top left
+# button in the looper to start a new loop recording.
+# 2. Play your base layer and mark the end of the
+# loop by stopping host transport or pressing 'Mark End'
+# 3. Press the 'Auto Trim' button to trim the loop's
+# length to match the host BPM. First Auto Trim will
+# extend/reduce loop length to closest beat. Extra
+# Auto Trim presses will reduce loop length by 1 beat.
+#
+# The left block label shows the current number of notes
+# in the loop (max 256 notes) and the right block label
+# shows the loop length in milliseconds (65535ms max).
+#
+# Once you have your base loop, you can add more notes
+# on top while the loop is playing and 'Overdub' is ON.
+# Use the 'Undo' button to erase the most recent overdub
+# (only 1 level of undo!). Double Tap 'Clear' to wipe and
+# start a new loop.
+#
+# Adjust the speed of the loop independently from host
+# using 'Varispeed' slider. Manually adjust loop length
+# using 'Trim' slider. Quantise all notes in the loop
+# with the 'Quantise' menu.
+#
+# Your loop contents will be saved with a preset.
+#
+# requires StreamByter 1.5
+# want to fix or improve this? Here's the code:
+
+if LOAD
+  set include factory standard_includes
+  set name Nimble_Looper
+  define preserve +p
+
+  alias Q0 run
+  alias Q1 overdub
+  alias Q2 undo
+  alias Q3 clear
+  alias Q4 speed
+  alias Q5 trim
+  alias Q6 quantise
+  alias Q7 autotrim
+
+  # NB - currently sounding notes in L00-7F
+  # loop control variables
+  alias L80 next_event_index
+  alias L81 note_count
+  alias L82 loop_length
+  alias L83 run_mode
+  alias L84 time_elapsed
+  alias L85 undo_index
+  alias L86 undo_note_count
+  alias L87 speed_org_loop_length
+  alias L88 speed_org_trim
+  alias L89 autotrim_count
+  alias L8A overdub_notes_added
+  alias L8B previous_undo_index
+  alias L8C previous_undo_note_count
+  alias P80 net_loop_length
+  define q_factors J0
+  define q_factor_lu JQ6
+  ass q_factors = 1 4 2 1 2 4 $8 $16
+  # NB - current note offsets in J80-JFF
+
+  # run modes
+  alias 0 rm_none
+  alias 1 rm_mark
+  alias 2 rm_stop
+  alias 3 rm_play
+  alias I80 rm_current
+
+  # log a value to sysex message
+  # F0 7D 02 12 34 56 78 F7
+  sub log_sysex_int16 ident val
+    mat I50 = val & 00FF
+    mat I51 = val / 100
+    snd F0 7D 04 ident I51 I50 F7
+  end
+
+  # SUBROUTINES
+  # ------ update labels
+  sub update_labels
+    mat net_loop_length = loop_length + trim
+    if next_event_index < $2048
+      set LB0 note_count +D
+    else
+      set LB0 SFull
+    end
+    set LB1 net_loop_length +D
+  end
+  # --- sub update_labels
+
+  # ------ reset looper
+  sub reset
+    ass speed = 0 preserve
+    ass trim = 0 preserve
+    ass quantise = 0 preserve
+
+    ass undo_index = 0 0
+    ass speed_org_loop_length = 0 0
+    ass autotrim_count = 0
+    ass overdub_notes_added = 0 0 0
+
+    # loop variables
+    ass next_event_index = 0 0 0 preserve
+    update_labels
+
+    if next_event_index == 0
+      ass run_mode = rm_none
+      set run New_Loop +toggle
+    else
+      ass run_mode = rm_stop
+      set run Play +toggle
+    end
+    ass run = 0
+  end
+  # --- sub reset
+
+  # ------ apply varispeed
+  alias P11 vs_tmp
+  sub apply_varispeed arg type
+    if speed != 0
+      # determine amount of arg to +/-
+      mat vs_tmp = arg * speed
+      mat vs_tmp = vs_tmp / $100
+
+      # swap signs
+      mat vs_tmp = vs_tmp * -1
+
+      mat arg = arg + vs_tmp
+    end
+  end
+  # --- sub apply_varispeed
+ 
+  # ------ apply quantisation to delay
+  alias P12 q_boundary
+  alias P13 q_boundary_mid
+  alias P14 q_offset
+  alias J7F q_offset_index
+  alias JJ7F q_offset_lu
+  sub apply_quantise delay byte0 byte1
+    # quantise will be 1-7 (4/1, 2/1, 1/1, 1/2, 1/4, 1/8, 1/16)
+    # determine ms boundary (and mid) from bpm for quantise setting
+    mat q_offset_index = byte1 + 80
+    mat q_boundary = $6000000 / BPM
+    if quantise < 3
+      mat q_boundary = q_boundary * q_factor_lu
+    else
+      mat q_boundary = q_boundary / q_factor_lu
+    end
+    mat q_boundary_mid = q_boundary / 2
+
+    # determine (closest) offset
+    mat q_offset = delay % q_boundary
+    if byte0 < 90
+      # re-use note on's offset
+      ass q_offset = q_offset_lu
+    else
+      if q_offset < q_boundary_mid
+        mat q_offset = 0 - q_offset
+      else
+        mat q_offset = q_boundary - q_offset
+      end
+      # retain the offset for this note
+      ass q_offset_lu = q_offset
+    end
+
+    # apply offset to delay
+    mat delay = delay + q_offset
+
+  end
+  # --- sub apply_quantise_delay
+
+  # ------ add stamped event to interleaved W
+  # (4 slots per event)
+  alias I10 ae_stamp
+  alias I11 ae_index
+  alias WI11 ae_wide
+  sub add_event
+    if next_event_index < $2048
+      # get timestamp into ae_stamp
+      ass ae_stamp = T0
+      if next_event_index == 0
+        ass ae_stamp = 0
+        ass time_elapsed = 0
+      end
+      mat time_elapsed = time_elapsed + ae_stamp
+
+      # copy msg + stamp
+      ass ae_index = next_event_index
+      ass ae_wide = M0 M1 M2 time_elapsed
+
+      mat next_event_index = next_event_index + 4
+      if MT == 80
+        mat note_count = note_count + 1
+      end
+
+      if overdub == 1
+        mat overdub_notes_added = overdub_notes_added + 1
+      end
+    end
+
+    # update
+    if run_mode == rm_mark
+      ass loop_length = time_elapsed
+    end
+    update_labels
+
+  end
+  # --- sub add_event
+
+  # ------ play loop
+  alias I21 pl_outer_count
+  alias I22 pl_index
+  alias WI22 pl_wide_lu
+  alias I23 pl_byte0
+  alias I24 pl_byte1
+  alias I25 pl_byte2
+  alias I26 pl_delay
+  sub play_loop
+    # reset timer+elapsed time
+    ass time_elapsed = T0
+    ass time_elapsed = 0
+
+    ass pl_outer_count = 0 0
+    while pl_outer_count < 4
+      while pl_index < next_event_index
+        ass pl_byte0 = pl_wide_lu
+        mat pl_index = pl_index + 1
+        ass pl_byte1 = pl_wide_lu
+        mat pl_index = pl_index + 1
+        ass pl_byte2 = pl_wide_lu
+        mat pl_index = pl_index + 1
+        ass pl_delay = pl_wide_lu
+        mat pl_index = pl_index + 1
+
+        # quantise?
+        if quantise != 0
+          apply_quantise pl_delay pl_byte0 pl_byte1
+        end
+
+        # apply optional varispeed to pl_delay
+        if speed != 0
+          apply_varispeed pl_delay 0
+        end
+
+        # schedule the event
+        if pl_byte0 < 90
+          # if it is a note off, send it regardless
+          send pl_byte0 pl_byte1 pl_byte2 +Dpl_delay
+        else
+          # if it is a note on, only if within loop length+trim
+          if pl_delay <= net_loop_length
+            send pl_byte0 pl_byte1 pl_byte2 +Dpl_delay
+          end
+        end
+
+      end
+      if pl_index >= next_event_index
+        ass pl_outer_count = 4
+      end
+    end
+
+    # play again? - send replay trigger
+    if run_mode >= rm_play
+      send F0 7D 02 01 F7 +I +Dnet_loop_length
+    end
+
+  end
+  # --- sub play_loop
+
+  # ------ flush and send all notes off
+  alias I30 sl_channel
+  alias I31 sl_byte0
+  sub stop_loop
+    ass sl_channel = 0
+    while sl_channel <= F
+      mat sl_byte0 = B0 + sl_channel
+      send sl_byte0 7B 00
+      mat sl_channel = sl_channel + 1
+    end
+    set flush 1
+    ass sl_channel = 0
+    while sl_channel <= F
+      mat sl_byte0 = B0 + sl_channel
+      send sl_byte0 7B 00
+      mat sl_channel = sl_channel + 1
+    end
+  end
+  # --- sub stop_loop
+
+  # ------ mark overdub start/stop
+  # (sets undo point)
+  sub mark_overdub
+    if overdub == 1
+      # we just switched into overdub
+      # (overdub button or start loop playback)
+
+      # save current undo into previous
+      ass overdub_notes_added = 0 undo_index undo_note_count
+
+      # save current into undo
+      ass undo_index = next_event_index note_count
+    else
+      # we just switched out of overdub
+      # (overdub button or stop loop playback)
+      if overdub_notes_added == 0
+        # restore undo before empty overdub
+        ass undo_index = previous_undo_index previous_undo_note_count
+      end
+    end
+  end # --- sub set_undo
+
+  # ------ restore undo point
+  sub restore_undo
+    if undo_index > 0
+      # restore to undo point
+      ass next_event_index = undo_index
+      ass note_count = undo_note_count
+      update_labels
+    end
+  end # --- sub restore_undo
+
+  # configure controls box
+  set overdub Overdub +toggle
+  set undo Undo +button
+  set clear Clear_(2_Taps) +button
+  set speed Varispeed_±% $-85 $85
+  set trim Trim_(ms) $-2000 $2000
+  set autotrim Auto_Trim +B
+  set quantise Beat_Quantise 0 7 +q
+
+  # reset to new loop  
+  reset
+
+  # bring up controls box
+  set slider_display 1
+
+end # load
+
+# handle note event
+if MT < A0
+  # determine whether to add note event
+  ass I0 = 0
+
+  # if recording (mark or overdub)
+  if run_mode == rm_mark
+    ass I0 = 1
+  end
+  if overdub == 1
+    ass I0 = 1
+  end
+
+  # if this is a note off for a recorded note
+  # mark to be added and set to not sounding
+  if MT == 80
+    if LM1 == 1
+      ass I0 = 1
+      ass LM1 = 0
+    end
+  end
+
+  # conditionally add the event to the loop
+  if I0 == 1
+    add_event
+
+    # mark recorded note as sounding
+    if MT == 90
+      ass LM1 = 1
+    end
+  end
+end
+
+# link host transport to q0
+if control_tx_start
+  if run_mode == rm_stop
+    ass M3 = 0
+    ass run = 1
+  end
+  if run_mode == rm_none
+    ass M3 = 0
+    ass run = 1
+  end
+end
+
+if control_tx_stop
+  if run_mode == rm_mark
+    ass M3 = 0
+    ass run = 0
+  end
+  if run_mode == rm_play
+    ass M3 = 0
+    ass run = 0
+  end
+end
+
+if control_q0_moved
+  # retain current run mode
+  ass rm_current = run_mode
+
+  # switch from none to mark
+  if rm_current == rm_none
+    set run Mark_End +t
+    ass run = 1
+    ass run_mode = rm_mark
+  end
+
+  # switch from mark to play
+  if rm_current == rm_mark
+    if next_event_index == 0
+      set run New_Loop +t
+      ass run = 0
+      ass run_mode = rm_none
+    else
+      set run Stop +t
+      ass run_mode = rm_play
+
+      # keep run toggle highlighted
+      ass run = 1
+
+      # set loop end ms
+      mat loop_length = time_elapsed + T0
+      update_labels
+
+      # autoplay loop
+      play_loop
+      mark_overdub
+    end
+  end
+
+  # switch from stop to play
+  if rm_current == rm_stop
+    set run Stop +t
+    ass run = 1
+    ass run_mode = rm_play
+    play_loop
+    mark_overdub
+  end
+
+  # play to stop
+  if rm_current == rm_play
+    stop_loop
+    set run Play +t
+    ass run = 0
+    ass run_mode = rm_stop
+  end
+end
+
+# overdub start/end
+if control_q1_moved
+  mark_overdub
+end
+
+# undo
+if control_q2_moved
+  restore_undo
+end
+
+# handle clear
+if control_q3_moved
+  ass I0 = T1
+  if I0 > 0
+    if I0 < $300
+      stop_loop
+      reset
+    end
+  end
+end
+
+# handle varispeed
+if control_q4_moved
+  if speed_org_loop_length == 0
+    ass speed_org_loop_length = loop_length
+    ass speed_org_trim = trim
+  else
+    ass loop_length = speed_org_loop_length
+    ass trim = speed_org_trim
+  end
+  apply_varispeed loop_length 1
+  apply_varispeed trim 1
+  update_labels
+end
+
+# handle autotrim
+if control_q7_moved
+  if next_event_index != 0
+    if BPM > 0
+      # calculate ms per beat
+      mat P0 = $6000000 / BPM
+      if autotrim_count == 0
+        mat P1 = loop_length % P0
+        mat P2 = P0 / 2
+        if P1 < P2
+          mat Q5 = 0 - P1
+        else
+          mat Q5 = P0 - P1
+        end
+      else
+        mat Q5 = Q5 - P0
+      end
+      mat autotrim_count = autotrim_count + 1
+
+      # pretend trim control was moved
+      ass M3 = 05
+    end
+  end
+end
+
+# handle trim
+if control_q5_moved
+  update_labels
+end
+
+# handle replay trigger
+if M0 == F0 7D 02 01
+  if run_mode >= rm_play
+    play_loop
+  end
+  block
+end
+
+# brute force preserve entire W array
+if load
+  ASS W0000 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0010 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0020 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0030 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0040 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0050 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0060 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0070 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0080 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0090 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W00A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W00B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W00C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W00D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W00E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W00F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0100 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0110 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0120 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0130 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0140 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0150 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0160 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0170 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0180 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0190 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W01A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W01B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W01C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W01D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W01E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W01F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0200 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0210 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0220 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0230 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0240 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0250 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0260 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0270 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0280 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0290 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W02A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W02B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W02C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W02D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W02E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W02F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0300 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0310 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0320 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0330 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0340 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0350 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0360 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0370 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0380 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0390 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W03A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W03B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W03C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W03D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W03E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W03F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0400 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0410 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0420 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0430 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0440 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0450 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0460 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0470 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0480 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0490 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W04A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W04B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W04C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W04D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W04E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W04F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0500 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0510 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0520 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0530 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0540 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0550 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0560 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0570 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0580 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0590 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W05A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W05B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W05C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W05D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W05E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W05F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0600 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0610 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0620 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0630 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0640 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0650 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0660 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0670 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0680 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0690 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W06A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W06B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W06C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W06D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W06E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W06F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0700 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0710 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0720 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0730 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0740 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0750 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0760 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0770 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0780 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W0790 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W07A0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W07B0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W07C0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W07D0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W07E0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+  ASS W07F0 = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 preserve
+end

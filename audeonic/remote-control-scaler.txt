@@ -1,0 +1,163 @@
+# programmable scaler by audeonic
+IF LOAD
+  # setup sliders
+  SET Q0 SEQ_CHAN 1 $16
+  SET Q1 CTL_CHAN 1 $16
+  SET Q2 TRANSPOSE 0 1
+  ASS Q0 = 1 2 1
+
+  # sequence chan, program chan
+  # (hex 0-F)
+  MAT K0 = Q0 - 1
+  MAT K1 = Q1 - 1
+
+  # scale mode, 0=block, 1=transpose
+  ASS K2 = Q2
+
+  # internal - scale (+ count in LC)
+  ASS L0 = 0 0 0 0 0 0 0 0 0 0 0 0 0
+  SET LB0 SNO
+  # SET LB1 K1 +D
+
+  # interim scale
+  ASS L10 = 0 0 0 0 0 0 0 0 0 0 0 0 0
+  ASS L80 = 0 # num prog notes held
+  ASS J0 = 0 # sounding notes map
+END
+
+# force note offs
+9X XX 00 = 8X
+#F0-F = XX +B
+
+# note ons
+IF MT == 90
+  # sequence
+  IF MC == K0
+    # save current note into I81
+    ASS I81 = M1
+
+    # is scale active?
+    IF LC > 1
+      # get note mod into I80
+      MAT I80 = M1 % C
+
+      # block mode
+      IF K2 == 0
+        IF LI80 == 0
+          # mark & block note
+          ASS I81 = 80
+          XX = XX +B
+        END
+      END
+
+      # if transpose mode
+      IF K2 == 1
+        IF LI80 == 0 # note out of scale
+          MAT I10 = 0 - 1
+          ASS I11 = F
+          # nearest higher note interval into I11
+          MAT I0 = I80 + 1
+          IF I0 <= B +L
+            IF LI0 != 0
+              MAT I11 = I0 - I80
+              ASS I0 = B
+            END
+            MAT I0 = I0 + 1
+          END
+
+          # nearest nower note interval into I10
+          MAT I0 = I80 - 1
+          IF I0 >= 0 +L
+            IF LI0 != 0
+              MAT I10 = I80 - I0
+              ASS I0 = 0
+            END
+            MAT I0 = I0 - 1
+          END
+
+          # for debug, send I10/11 to sysex
+          # SND F0 7D I10 I11 F7
+
+          # use closest note, higher note wins
+          # if tie break
+          MAT I0 = I81 + I11
+          IF I10 < I11
+            MAT I0 = I81 - I10
+          END
+          ASS I81 = I0
+        END
+      END
+    END
+
+    # remember what we mapped this input
+    # note to
+    ASS JM1 = I81
+
+    # remap the note unless blocked
+    IF I81 != 80
+      ASS M1 = I81
+    END
+  END
+
+  # program
+  IF MC == K1
+    # clear interim scale on first note
+    IF L80 == 0
+      ASS L10 = 0 0 0 0 0 0 0 0 0 0 0 0 0
+    END
+
+    # update interim scale
+    MAT I0 = M1 % C
+    MAT I0 = I0 + 10
+    ASS LI0 = 1
+    MAT L80 = L80 + 1
+    MAT L1C = L1C + 1
+    XX = XX +B
+    SET LB1 L80 +D
+  END
+END
+
+# note offs
+IF MT == 80
+  # sequence
+  IF MC == K0
+    IF JM1 != 80
+      ASS M1 = JM1
+    END
+  END
+  # program
+  IF MC == K1
+    MAT L80 = L80 - 1
+
+    # detect scale clear
+    IF L1C == 1
+      ASS L10 = 0 0 0 0 0 0 0 0 0 0 0 0 0
+    END
+
+    IF L80 == 0
+      # copy interim scale to active
+      ASS L0 = L10 L11 L12 L13 L14 L15 L16
+      ASS L7 = L17 L18 L19 L1A L1B L1C
+      SET LB0 LC +D
+      IF LC == 0
+        SET LB0 SNO
+      END
+
+      # for debug, wrap scale in sysex
+      # SND F0 7E L0 L1 L2 L3 L4 L5 F7
+      # SND F0 7E L6 L7 L8 L9 LA LB LC F7
+    END
+    XX = XX +B
+    SET LB1 L80 +D
+  END
+END
+
+# sliders
+IF M0 == F0 7D 01
+  IF M3 <= 01
+    MAT KM3 = QM3 - 1
+  END
+  IF M3 == 02
+    ASS K2 = Q2
+  END
+END

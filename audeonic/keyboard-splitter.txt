@@ -1,0 +1,25 @@
+# Keyboard Splitter (remote controllable)
+# by audeonic
+IF LOAD
+  ASS K0 = B0 15 # remote control event
+  ASS K2 = 00 01 # lo/hi split channels
+  ASS L0 = 3C # current split value
+  SET LB0 SSPL
+  SET LB1 L0 +N # display split
+END
+
+# handle remote control of split
+IF M0 == K0 K1
+  ASS L0 = M2 # assign split
+  SET LB1 L0 +N # show current split on label
+END
+
+# split note events
+IF MT < A0 # is it a note event?
+  IF M1 < L0 # is it in lower split point?
+    MAT M0 = MT + K2 # use lo chan
+  END
+  IF M1 >= L0 # is it upper split point?
+    MAT M0 = MT + K3 # use hi chan
+  END
+END

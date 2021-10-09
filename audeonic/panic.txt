@@ -1,0 +1,42 @@
+# panic! by audeonic
+IF LOAD
+  set name Panic
+  set sli 1
+  SET Q0 PANIC +button
+  SET Q1 BRUTE_FORCE +yesno
+  ASS Q0 = 0 0
+END
+
+# slider movements
+IF M0 == F0 7D 01
+  IF M3 == 00
+    ASS I0 = 0
+    IF I0 < $16 +L
+      MAT I1 = B0 + I0
+      SND I1 $123 00
+      IF Q1 == 1
+        SND F0 7D 02 I0 F7 +I
+      END
+      MAT I0 = I0 + 1
+    END
+    SET LB0 SSNT
+    SND F0 7D 03 F7 +I +D3000
+  END
+END
+
+# brute force mode
+IF M0 == F0 7D 02
+  SET LB1 M3 +D
+  MAT I1 = 80 + M3
+  ASS I0 = 0
+  IF I0 < 80 +L
+    SND I1 I0 00
+    MAT I0 = I0 + 1
+  END
+END
+
+# reset
+IF M0 == F0 7D 03
+  ASS Q0 = 0
+  SET LB0 SOK
+END

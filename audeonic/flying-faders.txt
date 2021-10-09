@@ -1,0 +1,150 @@
+# Flying Faders - by audeonic
+IF LOAD
+  set name Flying_Faders
+  set sli 1
+
+  # define output LFO criteria
+  # channel (1-16), CC (0-127), mode (0-4), init val(0-127)
+  # modes: 0=disable, 1=up>dn, 2=dn>up, 3=up>up, 4=dn>dn
+  ASS K0 = $1 $50 1 0
+  ASS K4 = $1 $51 2 7F
+  ASS K8 = $1 $52 3 0
+  ASS KC = $1 $53 4 7F
+
+  # configure slider names+ranges
+  SET Q0 LFO1><
+  SET Q1 LFO2<>
+  SET Q2 LFO3>>
+  SET Q3 LFO4<<
+  SET Q4 SPEED(MS) $50 $15000
+  SET Q5 RUN $0 $1 +T
+
+  # set slider starting points
+  ASS Q0 = K3 K7 KB KF $1500 0
+
+  # inject fake slider events to deploy starting points,
+  # delay time and transport state (stopped)
+  SND F0 7D 01 00 F7 +I # LFO1
+  SND F0 7D 01 01 F7 +I # LFO2
+  SND F0 7D 01 02 F7 +I # LFO3
+  SND F0 7D 01 03 F7 +I # LFO4
+  SND F0 7D 01 04 F7 +I # DELAY
+  SND F0 7D 01 05 F7 +I # STOP
+
+  # internal - set current up/dn direction of LFOs
+  # based on mode (L0-L3)
+  ASS I0 = 0
+  IF I0 < 4 +L
+    MAT I1 = I0 * 4
+    MAT I1 = I1 + 2
+    IF KI1 == 1
+      ASS LI0 = 1
+    END
+    IF KI1 == 2
+      ASS LI0 = -1
+    END
+    IF KI1 == 3
+      ASS LI0 = 1
+    END
+    IF KI1 == 4
+      ASS LI0 = -1
+    END
+    MAT I0 = I0 + 1
+  END
+END
+
+# handle slider movements or ticks
+IF M0 == F0 7D 01
+
+  # determine start/end lfo (I20/21) based on whether
+  # the event is a tick or a movement
+  ASS I20 = 0 0
+  IF M3 == 8
+    ASS I20 = 0 5
+  END
+  IF M3 < 4
+    ASS I20 = M3
+    MAT I21 = M3 + 1
+  END
+
+  IF I21 > 0 # slider/tick
+    # loop through one or all lfos
+    IF I20 < I21 +L
+      # get lfo channel, cc and mode into I10-12
+      MAT I0 = I20 * 4 # start index into K
+      MAT I10 = AF + KI0 # CC type+channel
+      MAT I1 = I0 + 1 # current K+1
+      ASS I11 = KI1 # CC number
+      MAT I2 = I0 + 2 # current K+2
+      ASS I12 = KI2 # LFO mode
+
+      # lfo is enabled
+      IF I12 > 0
+
+        # move LFO only if running
+        # if running, move LFO slider from current position
+        # according to current direction and mode
+        IF Q5 == 1
+          # move up/dn 1 unit
+          MAT QI20 = QI20 + LI20
+
+          # handle boundary transgressions
+          IF QI20 > 8000 # negative end
+            IF I12 <= 2 # up>dn or dn>up
+              ASS QI20 = 1
+              ASS LI20 = 1
+            END
+            IF I12 == 4 # dn>dn
+              ASS QI20 = 7E
+            END
+
+          END
+          IF QI20 > 7F # positive end
+            IF I12 <= 2 # up>dn or dn>up
+              ASS QI20 = 7E
+              ASS LI20 = -1
+            END
+            IF I12 == 3 # up>up
+              ASS QI20 = 1
+            END
+          END
+        END # running
+
+        # send CC for this LFO (running or not)
+        SND I10 I11 QI20 # send cc
+
+      END # lfo enabled
+
+      MAT I20 = I20 + 1
+    END #loop
+  END # slider/tick
+
+  # delay time
+  IF M3 == 04
+    MAT L4 = Q4 / 7F
+    SET LB1 L4 +D
+  END
+
+  # run start/stop
+  IF M3 == 05
+    IF Q5 == 0
+      SET Q5 RUN +T
+    ELSE
+      SET Q5 STOP +T
+      # inject run start event
+      # slider 8 (fake)
+      SND F0 7D 01 08 F7 +I
+    END
+  END
+
+  # tick event - slider 8
+  IF M3 == 08
+    # if still running, inject another tick
+    IF Q5 == 1
+      SND F0 7D 01 08 F7 +I +DL4
+    END
+  END
+
+  # block the internal sysex events
+  XX = XX +B
+END

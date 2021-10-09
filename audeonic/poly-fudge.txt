@@ -1,0 +1,459 @@
+# Poly Fudge by audeonic
+IF LOAD
+  set name Poly_Fudge
+  set sli 1
+
+  # sounding notes array
+  ASS L0 = 80 80 80 80 80 80 80 80
+
+  ASS Q0 = 0 0 0 0 0 0 0 0
+  SET Q0 OFF
+  SET Q1 OFF
+  SET Q2 OFF
+  SET Q3 OFF
+  SET Q4 OFF
+  SET Q5 OFF
+  SET Q6 OFF
+  SET Q7 OFF
+
+END
+9X XX 00 = 8X
+
+# handle note on
+IF MT == 90
+  # find next slider into I1
+  # into I1
+  ASS I0 = 0 80
+  IF I0 < 8 +L
+    IF LI0 == 80
+      ASS I1 = I0
+      ASS I0 = 8
+    END
+    MAT I0 = I0 + 1
+  END
+
+  # found available slider, setup
+  IF I1 != 80
+    MAT L80 = A0 + MC # remember channel
+    MAT L81 = L81 + 1 # increase note count
+    SET LB0 L81 +D
+    ASS LI1 = M1 # remember slider note
+
+    # set slider note
+    IF M1 == 00
+      SET QI1 C-2
+    END
+    IF M1 == 01
+      SET QI1 C#-2
+    END
+    IF M1 == 02
+      SET QI1 D-2
+    END
+    IF M1 == 03
+      SET QI1 EB-2
+    END
+    IF M1 == 04
+      SET QI1 E-2
+    END
+    IF M1 == 05
+      SET QI1 F-2
+    END
+    IF M1 == 06
+      SET QI1 F#-2
+    END
+    IF M1 == 07
+      SET QI1 G-2
+    END
+    IF M1 == 08
+      SET QI1 AB-2
+    END
+    IF M1 == 09
+      SET QI1 A-2
+    END
+    IF M1 == 0A
+      SET QI1 BB-2
+    END
+    IF M1 == 0B
+      SET QI1 B-2
+    END
+    IF M1 == 0C
+      SET QI1 C-2
+    END
+    IF M1 == 0D
+      SET QI1 C#-1
+    END
+    IF M1 == 0E
+      SET QI1 D-1
+    END
+    IF M1 == 0F
+      SET QI1 EB-1
+    END
+    IF M1 == 10
+      SET QI1 E-1
+    END
+    IF M1 == 11
+      SET QI1 F-1
+    END
+    IF M1 == 12
+      SET QI1 F#-1
+    END
+    IF M1 == 13
+      SET QI1 G-1
+    END
+    IF M1 == 14
+      SET QI1 AB-1
+    END
+    IF M1 == 15
+      SET QI1 A-1
+    END
+    IF M1 == 16
+      SET QI1 BB-1
+    END
+    IF M1 == 17
+      SET QI1 B-1
+    END
+    IF M1 == 18
+      SET QI1 C-1
+    END
+    IF M1 == 19
+      SET QI1 C#0
+    END
+    IF M1 == 1A
+      SET QI1 D0
+    END
+    IF M1 == 1B
+      SET QI1 EB0
+    END
+    IF M1 == 1C
+      SET QI1 E0
+    END
+    IF M1 == 1D
+      SET QI1 F0
+    END
+    IF M1 == 1E
+      SET QI1 F#0
+    END
+    IF M1 == 1F
+      SET QI1 G0
+    END
+    IF M1 == 20
+      SET QI1 AB0
+    END
+    IF M1 == 21
+      SET QI1 A0
+    END
+    IF M1 == 22
+      SET QI1 BB0
+    END
+    IF M1 == 23
+      SET QI1 B0
+    END
+    IF M1 == 24
+      SET QI1 C0
+    END
+    IF M1 == 25
+      SET QI1 C#1
+    END
+    IF M1 == 26
+      SET QI1 D1
+    END
+    IF M1 == 27
+      SET QI1 EB1
+    END
+    IF M1 == 28
+      SET QI1 E1
+    END
+    IF M1 == 29
+      SET QI1 F1
+    END
+    IF M1 == 2A
+      SET QI1 F#1
+    END
+    IF M1 == 2B
+      SET QI1 G1
+    END
+    IF M1 == 2C
+      SET QI1 AB1
+    END
+    IF M1 == 2D
+      SET QI1 A1
+    END
+    IF M1 == 2E
+      SET QI1 BB1
+    END
+    IF M1 == 2F
+      SET QI1 B1
+    END
+    IF M1 == 30
+      SET QI1 C1
+    END
+    IF M1 == 31
+      SET QI1 C#2
+    END
+    IF M1 == 32
+      SET QI1 D2
+    END
+    IF M1 == 33
+      SET QI1 EB2
+    END
+    IF M1 == 34
+      SET QI1 E2
+    END
+    IF M1 == 35
+      SET QI1 F2
+    END
+    IF M1 == 36
+      SET QI1 F#2
+    END
+    IF M1 == 37
+      SET QI1 G2
+    END
+    IF M1 == 38
+      SET QI1 AB2
+    END
+    IF M1 == 39
+      SET QI1 A2
+    END
+    IF M1 == 3A
+      SET QI1 BB2
+    END
+    IF M1 == 3B
+      SET QI1 B2
+    END
+    IF M1 == 3C
+      SET QI1 C2
+    END
+    IF M1 == 3D
+      SET QI1 C#3
+    END
+    IF M1 == 3E
+      SET QI1 D3
+    END
+    IF M1 == 3F
+      SET QI1 EB3
+    END
+    IF M1 == 40
+      SET QI1 E3
+    END
+    IF M1 == 41
+      SET QI1 F3
+    END
+    IF M1 == 42
+      SET QI1 F#3
+    END
+    IF M1 == 43
+      SET QI1 G3
+    END
+    IF M1 == 44
+      SET QI1 AB3
+    END
+    IF M1 == 45
+      SET QI1 A3
+    END
+    IF M1 == 46
+      SET QI1 BB3
+    END
+    IF M1 == 47
+      SET QI1 B3
+    END
+    IF M1 == 48
+      SET QI1 C3
+    END
+    IF M1 == 49
+      SET QI1 C#4
+    END
+    IF M1 == 4A
+      SET QI1 D4
+    END
+    IF M1 == 4B
+      SET QI1 EB4
+    END
+    IF M1 == 4C
+      SET QI1 E4
+    END
+    IF M1 == 4D
+      SET QI1 F4
+    END
+    IF M1 == 4E
+      SET QI1 F#4
+    END
+    IF M1 == 4F
+      SET QI1 G4
+    END
+    IF M1 == 50
+      SET QI1 AB4
+    END
+    IF M1 == 51
+      SET QI1 A4
+    END
+    IF M1 == 52
+      SET QI1 BB4
+    END
+    IF M1 == 53
+      SET QI1 B4
+    END
+    IF M1 == 54
+      SET QI1 C4
+    END
+    IF M1 == 55
+      SET QI1 C#5
+    END
+    IF M1 == 56
+      SET QI1 D5
+    END
+    IF M1 == 57
+      SET QI1 EB5
+    END
+    IF M1 == 58
+      SET QI1 E5
+    END
+    IF M1 == 59
+      SET QI1 F5
+    END
+    IF M1 == 5A
+      SET QI1 F#5
+    END
+    IF M1 == 5B
+      SET QI1 G5
+    END
+    IF M1 == 5C
+      SET QI1 AB5
+    END
+    IF M1 == 5D
+      SET QI1 A5
+    END
+    IF M1 == 5E
+      SET QI1 BB5
+    END
+    IF M1 == 5F
+      SET QI1 B5
+    END
+    IF M1 == 60
+      SET QI1 C5
+    END
+    IF M1 == 61
+      SET QI1 C#6
+    END
+    IF M1 == 62
+      SET QI1 D6
+    END
+    IF M1 == 63
+      SET QI1 EB6
+    END
+    IF M1 == 64
+      SET QI1 E6
+    END
+    IF M1 == 65
+      SET QI1 F6
+    END
+    IF M1 == 66
+      SET QI1 F#6
+    END
+    IF M1 == 67
+      SET QI1 G6
+    END
+    IF M1 == 68
+      SET QI1 AB6
+    END
+    IF M1 == 69
+      SET QI1 A6
+    END
+    IF M1 == 6A
+      SET QI1 BB6
+    END
+    IF M1 == 6B
+      SET QI1 B6
+    END
+    IF M1 == 6C
+      SET QI1 C6
+    END
+    IF M1 == 6D
+      SET QI1 C#7
+    END
+    IF M1 == 6E
+      SET QI1 D7
+    END
+    IF M1 == 6F
+      SET QI1 EB7
+    END
+    IF M1 == 70
+      SET QI1 E7
+    END
+    IF M1 == 71
+      SET QI1 F7
+    END
+    IF M1 == 72
+      SET QI1 F#7
+    END
+    IF M1 == 73
+      SET QI1 G7
+    END
+    IF M1 == 74
+      SET QI1 AB7
+    END
+    IF M1 == 75
+      SET QI1 A7
+    END
+    IF M1 == 76
+      SET QI1 BB7
+    END
+    IF M1 == 77
+      SET QI1 B7
+    END
+    IF M1 == 78
+      SET QI1 C7
+    END
+    IF M1 == 79
+      SET QI1 C#8
+    END
+    IF M1 == 7A
+      SET QI1 D8
+    END
+    IF M1 == 7B
+      SET QI1 EB8
+    END
+    IF M1 == 7C
+      SET QI1 E8
+    END
+    IF M1 == 7D
+      SET QI1 F8
+    END
+    IF M1 == 7E
+      SET QI1 F#8
+    END
+    IF M1 == 7F
+      SET QI1 G8
+    END
+
+  END
+END
+
+# handle note off
+IF MT == 80
+  # find the matching slider into I1
+  ASS I0 = 0 80
+  IF I0 < 8 +L
+    IF M1 == LI0
+      ASS I1 = I0
+      ASS I0 = 8
+    END
+    MAT I0 = I0 + 1
+  END
+
+  # found slider, tear down
+  IF I1 != 80
+    MAT L81 = L81 - 1 # decrement note count
+    SET LB0 L81 +D
+    SET QI1 OFF # set slider name
+    ASS QI1 = 0 # reset slider
+    ASS LI1 = 80 # make slider available
+  END
+END
+
+# handle slider movement
+IF M0 == F0 7D 01
+  IF LM3 != 80
+    # send correct poly aftertouch
+    SND L80 LM3 QM3
+  END
+END

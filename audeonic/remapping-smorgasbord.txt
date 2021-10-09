@@ -1,0 +1,19 @@
+# Remapping Smorgasbord
+# by audeonic
+# a collection of event remapping examples
+
+# channels
+XX = X9 # remap everything to channel 10
+X0 = X9 # remap channel 1 to 10
+X0 = X1 +C # copy all channel 1 to 2
+
+# individual notes
+NX 3C = XX 3D # remap middle C to C#
+NX 3C = XX 3E +C # add 3rd to middle C
+
+# controllers
+BX 07 = BX 08 # remap CC7 to CC8
+BX 07 = BX 08 +C # clone CC7 to CC8
+
+# others
+90 3C = BX 07 +C # clone middle C velocity to CC7

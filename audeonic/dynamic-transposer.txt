@@ -1,0 +1,45 @@
+# Dynamic Transposer (remote controllable)
+# by audeonic
+IF LOAD
+  # K0: note chan, ctl CC/chan, ctl CC val
+  ASS K0 = 00 B0 13
+  # L0: current delta, note on, note off
+  ASS L0 = 00
+  MAT L1 = 90 + K0
+  MAT L2 = 80 + K0
+  SET LB0 L0 +D
+END
+
+# handle CC
+IF M0 == K1 K2
+  MAT L0 = M2 - 40
+  SET LB0 L0 +D
+END
+
+# blanket convert all note on+vel0 to off
+9X XX 00 = 8X
+
+# trap chan note on
+IF M0 == L1
+  # determine transposed note into l3
+  MAT L3 = M1 + L0
+
+  # check in bounds
+  IF L3 >= 0
+    IF L3 <= 7F
+      # store current delta in I
+      ASS IM1 = L0
+      # transpose the note
+      ASS M1 = L3
+      # show last transposed note
+      SET LB1 L3 +N
+    END
+  END
+
+END
+
+# apply current delta to note off
+IF M0 == L2
+  MAT L3 = M1 + IM1
+  ASS M1 = L3
+END

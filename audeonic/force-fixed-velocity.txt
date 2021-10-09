@@ -1,0 +1,21 @@
+# Velocity Fixer (remote controllable)
+# by audeonic
+IF LOAD
+  ASS K0 = B0 15 # remote control event
+  ASS L0 = 64 +P # current fixed velocity
+  SET LB0 SVEL # set labels to current velocity
+  SET LB1 L0 +D
+END
+
+# handle remote control of velocity
+IF M0 == K0 K1
+  ASS L0 = M2 # assign velocity
+  SET LB1 L0 +D # show current velocity on label
+END
+
+# fix velocity
+IF MT == 90
+  IF M2 > 0
+    ASS M2 = L0
+  END
+END

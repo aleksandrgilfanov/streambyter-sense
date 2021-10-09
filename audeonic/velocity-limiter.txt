@@ -1,0 +1,21 @@
+# Velocity Limiter (remote controllable)
+# by audeonic
+IF LOAD
+  ASS K0 = B0 15 # remote control event
+  ASS L0 = 64 +P # current limit value
+  SET LB0 SLIM # set labels to current limit
+  SET LB1 L0 +D
+END
+
+# handle remote control of limit
+IF M0 == K0 K1
+  ASS L0 = M2 # assign limit
+  SET LB1 L0 +D # show current limit on label
+END
+
+# limit velocity
+IF MT == 90
+  IF M2 > L0
+    ASS M2 = L0
+  END
+END

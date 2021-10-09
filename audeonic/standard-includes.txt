@@ -1,0 +1,57 @@
+# standard includes
+
+# aliases - Midi Message Types
+ALIAS 90 note_on_msg
+ALIAS 80 note_off_msg
+ALIAS B0 controller_msg
+ALIAS D0 aftertouch_msg
+ALIAS E0 pitchbend_msg
+ALIAS F0 sysex_msg
+ALIAS F7 sysex_end
+
+# Midi Message Parameters
+ALIAS MT midi_msg_type
+ALIAS MC midi_msg_channel
+ALIAS M0 midi_msg_data
+ALIAS M1 midi_msg_note
+ALIAS M2 midi_msg_velocity
+ALIAS M1 midi_msg_cc
+ALIAS M2 midi_msg_value
+ALIAS M1 midi_msg_aftertouch
+ALIAS M1 midi_msg_pitchbend_lsb
+ALIAS M2 midi_msg_pitchbend_msb
+
+# defines
+define control_sysex F0 7D 01
+define control_moved M0 == control_sysex
+define control_q0_moved control_moved 00
+define control_q1_moved control_moved 01
+define control_q2_moved control_moved 02
+define control_q3_moved control_moved 03
+define control_q4_moved control_moved 04
+define control_q5_moved control_moved 05
+define control_q6_moved control_moved 06
+define control_q7_moved control_moved 07
+define control_q8_moved control_moved 08
+define control_q9_moved control_moved 09
+define control_qa_moved control_moved 0A
+define control_qb_moved control_moved 0B
+define control_qc_moved control_moved 0C
+define control_qd_moved control_moved 0D
+define control_qe_moved control_moved 0E
+define control_qf_moved control_moved 0F
+define control_tx_start control_moved 7A
+define control_tx_continue control_moved 7B
+define control_tx_stop control_moved 7C
+
+# increment/decrement sub/def
+sub excrement
+  ass IFF = 1
+  while IFF < ZN
+    mat ZIFF = ZIFF + Z0
+    mat IFF = IFF + 1
+  end
+end
+
+define increment excrement 1
+define decrement excrement -1
