@@ -1,0 +1,29 @@
+# Channel selector allows you to change channel of MIDI instrument in live.
+* Some MIDI note is used to select next channel.
+
+IF LOAD
+  ALIAS I0 CHANNEL
+  ALIAS I1 NEW_BYTE
+  ALIAS I2 CHANNELS_NUMBER
+
+  ASS CHANNEL = 0
+  ASS CHANNELS_NUMBER = 3
+END
+
+# Next channel on note C (30) off (00)
+IF M1 == 30 00
+  MAT CHANNEL = CHANNEL + 1
+
+  IF CHANNEL >= CHANNELS_NUMBER
+    ASS CHANNEL = 0
+  END
+  BLOCK
+  EXIT
+END
+
+# Generate message with new channel
+MAT NEW_BYTE = M0 + CHANNEL
+SND NEW_BYTE M1 M2
+
+# Block original message
+XX = XX +B
