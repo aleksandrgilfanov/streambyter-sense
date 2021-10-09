@@ -1,0 +1,63 @@
+IF LOAD
+  ALIAS $6 MAX
+  ASS I0 = 0
+END
+
+# if press stop on atom
+IF M0 == B0 6F 7F
+  # limit max note
+  IF I0 == MAX
+    ASS I0 = 0
+  ELSE
+    # increase
+    MAT I0 = I0 + 1
+  END
+
+  # send
+  SND B0 I0 7F
+END
+
+# if press shift stop on atom
+IF M0 == B0 70 7F
+  # limit max note
+  IF I0 == 0
+    ASS I0 = MAX
+  ELSE
+    # decrease
+    MAT I0 = I0 - 1
+  END
+
+  # send
+  SND B0 I0 7F
+END
+
+
+# block original stop press&release messages
+B0 6F = XX +B
+# with shift
+B0 70 = XX +B
+
+
+# if note is control 27 send 0 and 127 (atom preset button)
+IF M0 == B0 1B
+  #MAT L0 = 2 + R$5
+
+  SND B0 1B 00
+  SND B0 1B 7F
+END
+# block original 27
+B0 1B = B0 1B +B
+
+# if got control 0x62 (capture midi on LPX)
+IF M0 == B0 62 00
+  # select bank 9 with favorites
+  SND B0 00 09
+  # send program change random max 0x2A
+  SND C0 $R2A
+END
+
+# block notes and aftertouch
+# otherwise notes will be sent to synthone
+# because of random(capture) preset
+NX = XX +B
+AX = XX +B
